@@ -51,10 +51,21 @@ export const getUserEvents = query({
     // Get calendar account details for each event
     const eventsWithAccounts = await Promise.all(
       events.map(async (event) => {
-        const account = await ctx.db.get(event.calendarAccountId);
+        let calendarAccount = null;
+        if (event.calendarAccountId) {
+          const account = await ctx.db.get(event.calendarAccountId as any);
+          if (account && 'provider' in account) {
+            calendarAccount = {
+              _id: account._id,
+              provider: (account as any).provider,
+              email: (account as any).email,
+              isActive: (account as any).isActive
+            };
+          }
+        }
         return {
           ...event,
-          calendarAccount: account,
+          calendarAccount,
         };
       })
     );
@@ -72,7 +83,7 @@ export const getEvent = query({
     const event = await ctx.db.get(args.eventId);
     if (!event) return null;
 
-    const account = await ctx.db.get(event.calendarAccountId);
+    const account = event.calendarAccountId ? await ctx.db.get(event.calendarAccountId as any) : null;
     return {
       ...event,
       calendarAccount: account,
@@ -248,5 +259,39 @@ export const getCalendarAccounts = query({
       .collect();
 
     return accounts;
+  },
+});
+
+// Create a new event
+export const createEvent = mutation({
+  args: {
+    title: v.string(),
+    description: v.optional(v.string()),
+    startTime: v.string(),
+    endTime: v.string(),
+    location: v.optional(v.string()),
+    isAllDay: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getUserId(ctx);
+    if (!userId) throw new Error("User not found");
+
+    // For now, create events without a calendar account (manual events)
+    // Later, we can add logic to assign to a specific calendar
+    const eventId = await ctx.db.insert("events", {
+      userId,
+      calendarAccountId: undefined, // Manual event
+      externalEventId: `manual_${Date.now()}`, // Generate unique ID
+      title: args.title,
+      description: args.description,
+      startTime: args.startTime,
+      endTime: args.endTime,
+      location: args.location,
+      isAllDay: args.isAllDay,
+      lastModified: Date.now(),
+      isDeleted: false,
+    });
+
+    return eventId;
   },
 }); 

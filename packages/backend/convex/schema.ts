@@ -17,7 +17,7 @@ export default defineSchema({
   // Events from connected calendars
   events: defineTable({
     userId: v.string(),
-    calendarAccountId: v.id("calendarAccounts"),
+    calendarAccountId: v.optional(v.id("calendarAccounts")), // Optional for manual events
     externalEventId: v.string(), // ID from the original calendar
     title: v.string(),
     description: v.optional(v.string()),

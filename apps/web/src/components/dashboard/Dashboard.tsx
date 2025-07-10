@@ -5,6 +5,8 @@ import Image from "next/image";
 import { api } from "@packages/backend/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 import AddAccountModal from "./AddAccountModal";
+import CreateEventModal from "./CreateEventModal";
+import Calendar from "./Calendar";
 
 interface SyncedAccount {
   id: string;
@@ -36,6 +38,7 @@ const Dashboard = () => {
   
   // Modal state
   const [isAddAccountModalOpen, setIsAddAccountModalOpen] = useState(false);
+  const [isCreateEventModalOpen, setIsCreateEventModalOpen] = useState(false);
 
   const toggleAccount = async (accountId: string) => {
     const account = syncedAccounts.find(acc => acc.id === accountId);
@@ -98,51 +101,27 @@ const Dashboard = () => {
       
       {!isLoading && (
         <>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 px-5 sm:px-0">
-            {/* Calendar Preview Section */}
-            <div className="bg-white rounded-lg shadow-lg p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 px-5 sm:px-0">
+            {/* Calendar Section */}
+            <div className="lg:col-span-2 bg-white rounded-lg shadow-lg p-6">
               <h2 className="text-[#2D2D2D] text-xl sm:text-2xl font-semibold mb-4">
-                Calendar Preview
+                Calendar
               </h2>
-              <div className="bg-gray-50 rounded-lg p-4 h-64">
+              <div className="h-96">
                 {userEvents && userEvents.length > 0 ? (
-                  <div className="space-y-2 max-h-56 overflow-y-auto">
-                    {userEvents.slice(0, 5).map((event, index) => (
-                      <div key={index} className="bg-white p-3 rounded-lg border">
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <h4 className="font-medium text-sm text-gray-900 truncate">
-                              {event.title}
-                            </h4>
-                            <p className="text-xs text-gray-500 mt-1">
-                              {new Date(event.startTime).toLocaleDateString()} • {new Date(event.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                            </p>
-                            {event.location && (
-                              <p className="text-xs text-gray-400 mt-1">📍 {event.location}</p>
-                            )}
-                          </div>
-                          <div className="ml-2">
-                            <span className={`inline-block w-3 h-3 rounded-full ${
-                              event.calendarAccount?.provider === 'google' ? 'bg-red-400' :
-                              event.calendarAccount?.provider === 'outlook' ? 'bg-blue-400' :
-                              'bg-gray-400'
-                            }`}></span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                    {userEvents.length > 5 && (
-                      <p className="text-xs text-gray-500 text-center">
-                        +{userEvents.length - 5} more events
-                      </p>
-                    )}
-                  </div>
+                  <Calendar 
+                    events={userEvents} 
+                    onEventClick={(event) => {
+                      console.log("Event clicked:", event);
+                      // TODO: Open event details modal
+                    }}
+                  />
                 ) : (
                   <div className="text-center text-gray-500 h-full flex items-center justify-center">
                     <div>
                       <div className="text-4xl mb-2">📅</div>
                       <p className="text-sm">No events found</p>
-                      <p className="text-xs mt-1">Connect a calendar to see your events</p>
+                      <p className="text-xs mt-1">Connect a calendar or create events to see them here</p>
                     </div>
                   </div>
                 )}
@@ -231,7 +210,10 @@ const Dashboard = () => {
                 Quick Actions
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <button className="flex items-center justify-center space-x-2 bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-colors">
+                <button 
+                  onClick={() => setIsCreateEventModalOpen(true)}
+                  className="flex items-center justify-center space-x-2 bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-colors"
+                >
                   <span>📅</span>
                   <span>Create Event</span>
                 </button>
@@ -253,6 +235,11 @@ const Dashboard = () => {
         isOpen={isAddAccountModalOpen}
         onClose={() => setIsAddAccountModalOpen(false)}
         onAddAccount={handleAddAccount}
+      />
+      
+      <CreateEventModal
+        isOpen={isCreateEventModalOpen}
+        onClose={() => setIsCreateEventModalOpen(false)}
       />
     </div>
   );
