@@ -2,27 +2,27 @@ import Image from "next/image";
 
 const benefits = [
   {
-    title: "Effortless Note-Taking",
-    description: "Capture thoughts effortlessly with our intuitive interface",
-    image: "/images/goodNews.png",
-  },
-  {
-    title: "Seamless Sync",
-    description:
-      "Access your notes anytime, anywhere, with seamless cloud synchronization.",
-    image: "/images/cloudSync.png",
-  },
-  {
-    title: "Enhanced Productivity",
-    description:
-      "Let AI handle organization, so you can focus on what matters most.",
+    title: "Calendar Integration",
+    description: "Sync with Google Calendar to automatically import your events and availability",
     image: "/images/googleCalander.png",
   },
   {
-    title: "AI-Powered Insights",
+    title: "Smart Scheduling",
     description:
-      "Gain valuable insights with smart analytics based on your note patterns.",
+      "AI analyzes everyone's availability and suggests the best meeting times for your group.",
     image: "/images/bot.png",
+  },
+  {
+    title: "Group Management",
+    description:
+      "Create groups, send invites, and manage participants all in one place.",
+    image: "/images/goodNews.png",
+  },
+  {
+    title: "Real-time Sync",
+    description:
+      "Everyone's availability updates in real-time, so you always have the latest information.",
+    image: "/images/cloudSync.png",
   },
 ];
 
@@ -41,7 +41,7 @@ const Benefits = () => {
           Benefits
         </p>
         <h3 className=" text-black text-3xl sm:text-[57px] not-italic font-medium leading-[90.3%] tracking-[-1.425px] font-montserrat text-center pb-[46px] sm:pb-[87px]">
-          Why Choose UseNotes
+          Why Choose MeetUp
         </h3>
 
         <div className="relative">
