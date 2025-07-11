@@ -13,7 +13,9 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
+import type * as env from "../env.js";
 import type * as events from "../events.js";
+import type * as googleCalendar from "../googleCalendar.js";
 import type * as notes from "../notes.js";
 import type * as openai from "../openai.js";
 import type * as utils from "../utils.js";
@@ -27,7 +29,9 @@ import type * as utils from "../utils.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  env: typeof env;
   events: typeof events;
+  googleCalendar: typeof googleCalendar;
   notes: typeof notes;
   openai: typeof openai;
   utils: typeof utils;

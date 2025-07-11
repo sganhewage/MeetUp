@@ -3,12 +3,13 @@
 import { useState } from "react";
 import Image from "next/image";
 import { api } from "@packages/backend/convex/_generated/api";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery, useAction } from "convex/react";
 import AddAccountModal from "./AddAccountModal";
 import CreateEventModal from "./CreateEventModal";
 import EventPreviewModal from "./EventPreviewModal";
 import EditEventModal from "./EditEventModal";
 import Calendar from "./Calendar";
+import OAuthPopup from "./OAuthPopup";
 
 interface SyncedAccount {
   id: string;
@@ -16,6 +17,7 @@ interface SyncedAccount {
   type: "google" | "outlook" | "apple" | "other";
   isConnected: boolean;
   email?: string;
+  lastSync?: number;
 }
 
 const Dashboard = () => {
@@ -25,14 +27,17 @@ const Dashboard = () => {
   
   const updateAccount = useMutation(api.events.updateCalendarAccount);
   const deleteAccount = useMutation(api.events.deleteCalendarAccount);
+  const generateGoogleOAuthUrl = useAction(api.googleCalendar.generateGoogleOAuthUrl);
+  // const syncGoogleCalendar = useAction(api.googleCalendar.syncGoogleCalendar);
 
   // Convert backend data to frontend format
-  const syncedAccounts: SyncedAccount[] = calendarAccounts?.map(account => ({
+  const syncedAccounts: SyncedAccount[] = calendarAccounts?.map((account: any) => ({
     id: account._id,
     name: `${account.provider.charAt(0).toUpperCase() + account.provider.slice(1)} Calendar`,
     type: account.provider as "google" | "outlook" | "apple" | "other",
     isConnected: account.isActive,
-    email: account.email
+    email: account.email,
+    lastSync: account.lastSync
   })) || [];
 
   // Loading states
@@ -44,6 +49,11 @@ const Dashboard = () => {
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const [isEventPreviewModalOpen, setIsEventPreviewModalOpen] = useState(false);
   const [isEditEventModalOpen, setIsEditEventModalOpen] = useState(false);
+  const [syncingAccounts, setSyncingAccounts] = useState<Set<string>>(new Set());
+  
+  // OAuth popup state
+  const [oauthProvider, setOauthProvider] = useState<"google" | "outlook" | "apple" | null>(null);
+  const [showOAuthPopup, setShowOAuthPopup] = useState(false);
 
   const toggleAccount = async (accountId: string) => {
     const account = syncedAccounts.find(acc => acc.id === accountId);
@@ -59,11 +69,27 @@ const Dashboard = () => {
     }
   };
 
-  const handleAddAccount = (provider: string) => {
-    // For now, just log the provider. Later this will trigger OAuth flow
-    console.log("Adding account for provider:", provider);
-    // TODO: Implement OAuth flow for the selected provider
-    alert(`OAuth flow for ${provider} will be implemented next!`);
+  const handleAddAccount = async (provider: string) => {
+    setOauthProvider(provider as "google" | "outlook" | "apple");
+    setShowOAuthPopup(true);
+  };
+
+  const handleOAuthSuccess = (email: string) => {
+    setShowOAuthPopup(false);
+    setOauthProvider(null);
+    // The account will be automatically added to the list
+    alert(`Successfully connected ${email}!`);
+  };
+
+  const handleOAuthError = (error: string) => {
+    setShowOAuthPopup(false);
+    setOauthProvider(null);
+    alert(`Failed to connect account: ${error}`);
+  };
+
+  const handleOAuthClose = () => {
+    setShowOAuthPopup(false);
+    setOauthProvider(null);
   };
 
   const handleEventClick = (event: any) => {
@@ -101,6 +127,18 @@ const Dashboard = () => {
       default:
         return "bg-gray-100 border-gray-300";
     }
+  };
+
+  const formatLastSync = (timestamp?: number) => {
+    if (!timestamp) return "Never";
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+    
+    if (diffInMinutes < 1) return "Just now";
+    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
+    return `${Math.floor(diffInMinutes / 1440)}d ago`;
   };
 
   return (
@@ -175,6 +213,11 @@ const Dashboard = () => {
                           {account.email && (
                             <p className="text-xs text-gray-600">{account.email}</p>
                           )}
+                          {account.lastSync && (
+                            <p className="text-xs text-gray-500">
+                              Last sync: {formatLastSync(account.lastSync)}
+                            </p>
+                          )}
                         </div>
                       </div>
                       
@@ -186,6 +229,17 @@ const Dashboard = () => {
                         }`}>
                           {account.isConnected ? 'Connected' : 'Disconnected'}
                         </span>
+                        
+                        {account.isConnected && account.type === "google" && (
+                          <button
+                            onClick={async () => {
+                              alert("Sync functionality will be implemented soon!");
+                            }}
+                            className="text-xs px-2 py-1 rounded-full transition-colors bg-blue-100 text-blue-800 hover:bg-blue-200"
+                          >
+                            Sync
+                          </button>
+                        )}
                         
                         <label className="relative inline-flex items-center cursor-pointer">
                           <input
@@ -273,6 +327,15 @@ const Dashboard = () => {
         }}
         event={selectedEvent}
       />
+      
+      {showOAuthPopup && oauthProvider && (
+        <OAuthPopup
+          provider={oauthProvider}
+          onSuccess={handleOAuthSuccess}
+          onError={handleOAuthError}
+          onClose={handleOAuthClose}
+        />
+      )}
     </div>
   );
 };
