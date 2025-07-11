@@ -22,14 +22,14 @@ const calendarProviders = [
     id: "outlook",
     name: "Outlook Calendar", 
     description: "Connect your Microsoft Outlook account",
-    icon: "/images/monitor.png", // Using monitor as placeholder
+    icon: "/images/outlook.png", // Using monitor as placeholder
     color: "bg-blue-50 border-blue-200 hover:bg-blue-100"
   },
   {
     id: "apple",
     name: "Apple Calendar",
     description: "Connect your Apple iCloud Calendar",
-    icon: "/images/profile.png", // Using profile as placeholder
+    icon: "/images/apple.png", // Using profile as placeholder
     color: "bg-gray-50 border-gray-200 hover:bg-gray-100"
   }
 ];
