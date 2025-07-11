@@ -19,5 +19,9 @@
     "apps/*",
     "packages/*"
   ],
-  "packageManager": "pnpm@9.15.1"
+  "packageManager": "pnpm@9.15.1",
+  "dependencies": {
+    "react-datepicker": "^8.4.0",
+    "react-toastify": "^11.0.5"
+  }
 }

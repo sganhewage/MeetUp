@@ -10,6 +10,8 @@ import EventPreviewModal from "./EventPreviewModal";
 import EditEventModal from "./EditEventModal";
 import Calendar from "./Calendar";
 import OAuthPopup from "./OAuthPopup";
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 interface SyncedAccount {
   id: string;
@@ -78,13 +80,13 @@ const Dashboard = () => {
     setShowOAuthPopup(false);
     setOauthProvider(null);
     // The account will be automatically added to the list
-    alert(`Successfully connected ${email}!`);
+    toast.success(`Successfully connected ${email}!`);
   };
 
   const handleOAuthError = (error: string) => {
     setShowOAuthPopup(false);
     setOauthProvider(null);
-    alert(`Failed to connect account: ${error}`);
+    toast.error(`Failed to connect account: ${error}`);
   };
 
   const handleOAuthClose = () => {
@@ -108,13 +110,14 @@ const Dashboard = () => {
       // get calender account id
       const accountId = syncedAccounts.find(account => account.isConnected && account.type === "google")?.id;
       if (!accountId) {
-        alert("No connected calendar account found");
+        toast.error("No connected calendar account found");
         return;
       }
       await syncGoogleCalendar({ accountId: accountId as any });
-      alert("Synced!");
+      toast.success("Synced!");
     } catch (error) {
       console.error("Failed to sync:", error);
+      toast.error("Failed to sync calendar");
     }
   };
 
@@ -157,173 +160,153 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="container pb-10">
+    <div className="container h-screen flex flex-col pb-10">
       <h1 className="text-[#2D2D2D] text-center text-[20px] sm:text-[43px] not-italic font-normal sm:font-medium leading-[114.3%] tracking-[-1.075px] sm:mt-8 my-4 sm:mb-10">
         Calendar Dashboard
       </h1>
-      
-      {isLoading && (
-        <div className="flex justify-center items-center py-20">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="flex flex-1 gap-8 px-5 sm:px-0">
+        {/* Calendar Section */}
+        <div className="flex-1 bg-white rounded-lg shadow-lg p-6 flex flex-col min-h-0">
+          <h2 className="text-[#2D2D2D] text-xl sm:text-2xl font-semibold mb-4">
+            Calendar
+          </h2>
+          <div className="flex-1 min-h-0">
+            {userEvents && userEvents.length > 0 ? (
+              <Calendar 
+                events={userEvents} 
+                onEventClick={handleEventClick}
+              />
+            ) : (
+              <div className="text-center text-gray-500 h-full flex items-center justify-center">
+                <div>
+                  <div className="text-4xl mb-2">📅</div>
+                  <p className="text-sm">No events found</p>
+                  <p className="text-xs mt-1">Connect a calendar or create events to see them here</p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-      )}
-      
-      {!isLoading && (
-        <>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 px-5 sm:px-0">
-            {/* Calendar Section */}
-            <div className="lg:col-span-2 bg-white rounded-lg shadow-lg p-6">
-              <h2 className="text-[#2D2D2D] text-xl sm:text-2xl font-semibold mb-4">
-                Calendar
+        {/* Right Column: Synced Accounts + Quick Actions */}
+        <div className="flex flex-col w-full max-w-md space-y-6">
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-[#2D2D2D] text-xl sm:text-2xl font-semibold">
+                Synced Accounts
               </h2>
-              <div className="h-96">
-                {userEvents && userEvents.length > 0 ? (
-                  <Calendar 
-                    events={userEvents} 
-                    onEventClick={handleEventClick}
-                  />
-                ) : (
-                  <div className="text-center text-gray-500 h-full flex items-center justify-center">
-                    <div>
-                      <div className="text-4xl mb-2">📅</div>
-                      <p className="text-sm">No events found</p>
-                      <p className="text-xs mt-1">Connect a calendar or create events to see them here</p>
-                    </div>
-                  </div>
-                )}
-              </div>
+              <button 
+                onClick={() => setIsAddAccountModalOpen(true)}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition-colors"
+              >
+                + Add Account
+              </button>
             </div>
-
-            {/* Synced Accounts Section */}
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-[#2D2D2D] text-xl sm:text-2xl font-semibold">
-                  Synced Accounts
-                </h2>
-                <button 
-                  onClick={() => setIsAddAccountModalOpen(true)}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition-colors"
-                >
-                  + Add Account
-                </button>
-              </div>
-              
-              <div className="space-y-3">
-                {syncedAccounts.length > 0 ? (
-                  syncedAccounts.map((account) => (
-                    <div 
-                      key={account.id}
-                      className={`flex items-center justify-between p-3 rounded-lg border ${getAccountColor(account.type)}`}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <Image
-                          src={getAccountIcon(account.type)}
-                          width={24}
-                          height={24}
-                          alt={account.name}
-                          className="w-6 h-6"
-                        />
-                        <div>
-                          <p className="font-medium text-sm">{account.name}</p>
-                          {account.email && (
-                            <p className="text-xs text-gray-600">{account.email}</p>
-                          )}
-                          {account.lastSync && (
-                            <p className="text-xs text-gray-500">
-                              Last sync: {formatLastSync(account.lastSync)}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center space-x-2">
-                        <span className={`text-xs px-2 py-1 rounded-full ${
-                          account.isConnected 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-gray-100 text-gray-600'
-                        }`}>
-                          {account.isConnected ? 'Connected' : 'Disconnected'}
-                        </span>
-                        
-                        {account.isConnected && account.type === "google" && (
-                          <button
-                            onClick={async () => {
-                              handleSync();
-                            }}
-                            className="text-xs px-2 py-1 rounded-full transition-colors bg-blue-100 text-blue-800 hover:bg-blue-200"
-                          >
-                            Sync
-                          </button>
+            <div className="space-y-3">
+              {syncedAccounts.length > 0 ? (
+                syncedAccounts.map((account) => (
+                  <div 
+                    key={account.id}
+                    className={`flex items-center justify-between p-3 rounded-lg border ${getAccountColor(account.type)}`}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <Image
+                        src={getAccountIcon(account.type)}
+                        width={24}
+                        height={24}
+                        alt={account.name}
+                        className="w-6 h-6"
+                      />
+                      <div>
+                        <p className="font-medium text-sm">{account.name}</p>
+                        {account.email && (
+                          <p className="text-xs text-gray-600">{account.email}</p>
                         )}
-                        
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={account.isConnected}
-                            onChange={() => toggleAccount(account.id)}
-                            className="sr-only peer"
-                          />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                        </label>
+                        {account.lastSync && (
+                          <p className="text-xs text-gray-500">
+                            Last sync: {formatLastSync(account.lastSync)}
+                          </p>
+                        )}
                       </div>
                     </div>
-                  ))
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <div className="text-2xl mb-2">🔗</div>
-                    <p className="text-sm">No calendar accounts connected</p>
-                    <p className="text-xs mt-1">Click "Add Account" to get started</p>
+                    <div className="flex items-center space-x-2">
+                      <span className={`text-xs px-2 py-1 rounded-full ${
+                        account.isConnected 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-gray-100 text-gray-600'
+                      }`}>
+                        {account.isConnected ? 'Connected' : 'Disconnected'}
+                      </span>
+                      {account.isConnected && account.type === "google" && (
+                        <button
+                          onClick={async () => {
+                            handleSync();
+                          }}
+                          className="text-xs px-2 py-1 rounded-full transition-colors bg-blue-100 text-blue-800 hover:bg-blue-200"
+                        >
+                          Sync
+                        </button>
+                      )}
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={account.isConnected}
+                          onChange={() => toggleAccount(account.id)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                      </label>
+                    </div>
                   </div>
-                )}
-              </div>
-              
-              <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                <p className="text-sm text-blue-800">
-                  💡 <strong>Tip:</strong> Connect multiple calendars to get better availability suggestions for your meetings.
-                </p>
-              </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <div className="text-2xl mb-2">🔗</div>
+                  <p className="text-sm">No calendar accounts connected</p>
+                  <p className="text-xs mt-1">Click "Add Account" to get started</p>
+                </div>
+              )}
+            </div>
+            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+              <p className="text-sm text-blue-800">
+                💡 <strong>Tip:</strong> Connect multiple calendars to get better availability suggestions for your meetings.
+              </p>
             </div>
           </div>
-
-          {/* Quick Actions Section */}
-          <div className="mt-8 px-5 sm:px-0">
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h2 className="text-[#2D2D2D] text-xl sm:text-2xl font-semibold mb-4">
-                Quick Actions
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <button 
-                  onClick={() => setIsCreateEventModalOpen(true)}
-                  className="flex items-center justify-center space-x-2 bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-colors"
-                >
-                  <span>📅</span>
-                  <span>Create Event</span>
-                </button>
-                <button className="flex items-center justify-center space-x-2 bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors">
-                  <span>👥</span>
-                  <span>Invite Group</span>
-                </button>
-                <button className="flex items-center justify-center space-x-2 bg-purple-600 text-white px-4 py-3 rounded-lg hover:bg-purple-700 transition-colors">
-                  <span>🤖</span>
-                  <span>AI Suggestions</span>
-                </button>
-              </div>
+          {/* Quick Actions Section moved below Synced Accounts */}
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <h2 className="text-[#2D2D2D] text-xl sm:text-2xl font-semibold mb-4">
+              Quick Actions
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <button 
+                onClick={() => setIsCreateEventModalOpen(true)}
+                className="flex items-center justify-center space-x-2 bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <span>📅</span>
+                <span>Create Event</span>
+              </button>
+              <button className="flex items-center justify-center space-x-2 bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors">
+                <span>👥</span>
+                <span>Invite Group</span>
+              </button>
+              <button className="flex items-center justify-center space-x-2 bg-purple-600 text-white px-4 py-3 rounded-lg hover:bg-purple-700 transition-colors">
+                <span>🤖</span>
+                <span>AI Suggestions</span>
+              </button>
             </div>
           </div>
-        </>
-      )}
-      
+        </div>
+      </div>
+      {/* Modals and Popups remain unchanged */}
       <AddAccountModal
         isOpen={isAddAccountModalOpen}
         onClose={() => setIsAddAccountModalOpen(false)}
         onAddAccount={handleAddAccount}
       />
-      
       <CreateEventModal
         isOpen={isCreateEventModalOpen}
         onClose={() => setIsCreateEventModalOpen(false)}
       />
-      
       <EventPreviewModal
         isOpen={isEventPreviewModalOpen}
         onClose={() => {
@@ -333,7 +316,6 @@ const Dashboard = () => {
         event={selectedEvent}
         onEdit={handleEditEvent}
       />
-      
       <EditEventModal
         isOpen={isEditEventModalOpen}
         onClose={() => {
@@ -342,7 +324,6 @@ const Dashboard = () => {
         }}
         event={selectedEvent}
       />
-      
       {showOAuthPopup && oauthProvider && (
         <OAuthPopup
           provider={oauthProvider}
@@ -351,6 +332,7 @@ const Dashboard = () => {
           onClose={handleOAuthClose}
         />
       )}
+      <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop closeOnClick pauseOnFocusLoss draggable pauseOnHover />
     </div>
   );
 };

@@ -115,4 +115,10 @@
   font-size: 1.125rem;
   font-weight: 600;
   color: #111827;
+}
+
+.custom-datepicker-popper {
+  min-width: 320px;
+  padding-left: 8px;
+  padding-right: 8px;
 } 

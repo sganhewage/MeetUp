@@ -4,6 +4,8 @@ import { Fragment, useState } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 import { api } from "@packages/backend/convex/_generated/api";
 import { useMutation } from "convex/react";
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 interface CreateEventModalProps {
   isOpen: boolean;
@@ -13,8 +15,8 @@ interface CreateEventModalProps {
 export default function CreateEventModal({ isOpen, onClose }: CreateEventModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
+  const [startTime, setStartTime] = useState<Date | null>(null);
+  const [endTime, setEndTime] = useState<Date | null>(null);
   const [location, setLocation] = useState("");
   const [isAllDay, setIsAllDay] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -34,8 +36,8 @@ export default function CreateEventModal({ isOpen, onClose }: CreateEventModalPr
       await createEvent({
         title: title.trim(),
         description: description.trim() || undefined,
-        startTime,
-        endTime,
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
         location: location.trim() || undefined,
         isAllDay,
       });
@@ -43,8 +45,8 @@ export default function CreateEventModal({ isOpen, onClose }: CreateEventModalPr
       // Reset form
       setTitle("");
       setDescription("");
-      setStartTime("");
-      setEndTime("");
+      setStartTime(null);
+      setEndTime(null);
       setLocation("");
       setIsAllDay(false);
       
@@ -151,13 +153,16 @@ export default function CreateEventModal({ isOpen, onClose }: CreateEventModalPr
                             <label htmlFor="startTime" className="block text-sm font-medium text-gray-700">
                               Start Time *
                             </label>
-                            <input
-                              type={isAllDay ? "date" : "datetime-local"}
+                            <DatePicker
                               id="startTime"
-                              value={startTime}
-                              onChange={(e) => setStartTime(e.target.value)}
+                              selected={startTime}
+                              onChange={(date) => setStartTime(date)}
+                              showTimeSelect={!isAllDay}
+                              dateFormat={isAllDay ? "yyyy-MM-dd" : "Pp"}
                               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                              placeholderText={isAllDay ? "Select date" : "Select date and time"}
                               required
+                              popperPlacement="bottom-start"
                             />
                           </div>
 
@@ -166,13 +171,17 @@ export default function CreateEventModal({ isOpen, onClose }: CreateEventModalPr
                             <label htmlFor="endTime" className="block text-sm font-medium text-gray-700">
                               End Time *
                             </label>
-                            <input
-                              type={isAllDay ? "date" : "datetime-local"}
+                            <DatePicker
                               id="endTime"
-                              value={endTime}
-                              onChange={(e) => setEndTime(e.target.value)}
+                              selected={endTime}
+                              onChange={(date) => setEndTime(date)}
+                              showTimeSelect={!isAllDay}
+                              dateFormat={isAllDay ? "yyyy-MM-dd" : "Pp"}
                               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                              placeholderText={isAllDay ? "Select date" : "Select date and time"}
                               required
+                              minDate={startTime || undefined}
+                              popperPlacement="bottom-start"
                             />
                           </div>
 
