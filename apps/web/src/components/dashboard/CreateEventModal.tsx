@@ -31,13 +31,33 @@ export default function CreateEventModal({ isOpen, onClose }: CreateEventModalPr
       return;
     }
 
+    let adjustedStart = new Date(startTime);
+    let adjustedEnd = new Date(endTime);
+    if (isAllDay) {
+      // For all-day events, set end to the next day at midnight (exclusive end)
+      adjustedStart.setHours(0, 0, 0, 0);
+      adjustedEnd.setHours(0, 0, 0, 0);
+      adjustedEnd.setDate(adjustedEnd.getDate() + 1);
+    } else {
+      // For multi-day timed events, if end is at 00:00, set to 23:59:59.999 of that day
+      if (
+        adjustedEnd.getHours() === 0 &&
+        adjustedEnd.getMinutes() === 0 &&
+        adjustedEnd.getSeconds() === 0 &&
+        adjustedEnd.getMilliseconds() === 0 &&
+        (adjustedEnd.getTime() - adjustedStart.getTime()) > 24 * 60 * 60 * 1000
+      ) {
+        adjustedEnd.setHours(23, 59, 59, 999);
+      }
+    }
+
     setIsLoading(true);
     try {
       await createEvent({
         title: title.trim(),
         description: description.trim() || undefined,
-        startTime: startTime.toISOString(),
-        endTime: endTime.toISOString(),
+        startTime: adjustedStart.toISOString(),
+        endTime: adjustedEnd.toISOString(),
         location: location.trim() || undefined,
         isAllDay,
       });

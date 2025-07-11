@@ -33,6 +33,15 @@ const EventPreviewModal = ({ isOpen, onClose, event, onEdit }: EventPreviewModal
 
   if (!isOpen || !event) return null;
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  };
+
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleString('en-US', {
@@ -51,6 +60,17 @@ const EventPreviewModal = ({ isOpen, onClose, event, onEdit }: EventPreviewModal
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  // For all-day events, show the correct range (subtract one day from end)
+  const getAllDayRange = (start: string, end: string) => {
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    endDate.setDate(endDate.getDate() - 1);
+    if (startDate.toDateString() === endDate.toDateString()) {
+      return formatDate(start);
+    }
+    return `${formatDate(start)} - ${formatDate(endDate.toISOString())}`;
   };
 
   const handleDelete = async () => {
@@ -126,13 +146,13 @@ const EventPreviewModal = ({ isOpen, onClose, event, onEdit }: EventPreviewModal
                 {event.isAllDay ? (
                   <div>
                     <div className="font-medium">All Day</div>
-                    <div>{new Date(event.startTime).toLocaleDateString()}</div>
+                    <div>{getAllDayRange(event.startTime, event.endTime)}</div>
                   </div>
                 ) : (
                   <div>
                     <div className="font-medium">{formatDateTime(event.startTime)}</div>
                     <div className="text-gray-500">
-                      {formatTime(event.startTime)} - {formatTime(event.endTime)}
+                      {formatDateTime(event.startTime)}<br/>to<br/>{formatDateTime(event.endTime)}
                     </div>
                   </div>
                 )}

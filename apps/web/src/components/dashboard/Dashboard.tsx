@@ -31,6 +31,7 @@ const Dashboard = () => {
   const deleteAccount = useMutation(api.events.deleteCalendarAccount);
   const generateGoogleOAuthUrl = useAction(api.googleCalendar.generateGoogleOAuthUrl);
   const syncGoogleCalendar = useAction(api.googleCalendar.syncGoogleCalendar);
+  const deleteEvent = useMutation(api.events.deleteEvent);
 
   // Convert backend data to frontend format
   const syncedAccounts: SyncedAccount[] = calendarAccounts?.map((account: any) => ({
@@ -99,6 +100,19 @@ const Dashboard = () => {
     setIsEventPreviewModalOpen(true);
   };
 
+  const handleEventDelete = async (event: any) => {
+    if (!event) return;
+    if (!window.confirm('Are you sure you want to delete this event?')) return;
+    try {
+      await deleteEvent({ eventId: event._id as any });
+      toast.success('Event deleted!');
+      // Optionally, refresh events or handle UI update
+    } catch (error) {
+      console.error('Failed to delete event:', error);
+      toast.error('Failed to delete event. Please try again.');
+    }
+  };
+
   const handleEditEvent = (event: any) => {
     setSelectedEvent(event);
     setIsEventPreviewModalOpen(false);
@@ -126,9 +140,9 @@ const Dashboard = () => {
       case "google":
         return "/images/google.png";
       case "outlook":
-        return "/images/monitor.png"; // Using monitor as placeholder for Outlook
+        return "/images/outlook.png"; // Using monitor as placeholder for Outlook
       case "apple":
-        return "/images/profile.png"; // Using profile as placeholder for Apple
+        return "/images/apple.png"; // Using profile as placeholder for Apple
       default:
         return "/images/profile.png";
     }
@@ -175,6 +189,7 @@ const Dashboard = () => {
               <Calendar 
                 events={userEvents} 
                 onEventClick={handleEventClick}
+                onEventDelete={handleEventDelete}
               />
             ) : (
               <div className="text-center text-gray-500 h-full flex items-center justify-center">

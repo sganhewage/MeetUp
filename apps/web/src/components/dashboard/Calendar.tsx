@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, MouseEvent } from "react";
 import { Calendar as BigCalendar, dateFnsLocalizer } from 'react-big-calendar';
 import { format }from 'date-fns/format';
 import { parse } from 'date-fns/parse';
@@ -28,6 +28,7 @@ interface Event {
 interface CalendarProps {
   events: Event[];
   onEventClick?: (event: Event) => void;
+  onEventDelete?: (event: Event) => void;
 }
 
 const locales = {
@@ -42,9 +43,29 @@ const localizer = dateFnsLocalizer({
   locales,
 });
 
-export default function Calendar({ events, onEventClick }: CalendarProps) {
+// Custom event wrapper for right-click context menu
+const EventWrapper = ({ children, event, onContextMenu }: any) => {
+  return (
+    <div
+      onContextMenu={e => {
+        if (onContextMenu) onContextMenu(event, e);
+      }}
+      style={{ cursor: 'pointer' }}
+    >
+      {children}
+    </div>
+  );
+};
+
+export default function Calendar({ events, onEventClick, onEventDelete }: CalendarProps) {
   const [view, setView] = useState<'month' | 'week' | 'day'>('month');
   const [date, setDate] = useState(new Date());
+  const [contextMenu, setContextMenu] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+    event: any | null;
+  }>({ visible: false, x: 0, y: 0, event: null });
 
   // Convert events to react-big-calendar format
   const calendarEvents = events.map(event => ({
@@ -94,6 +115,20 @@ export default function Calendar({ events, onEventClick }: CalendarProps) {
     }
   };
 
+  const handleEventRightClick = (eventObj: any, e: MouseEvent) => {
+    e.preventDefault();
+    setContextMenu({
+      visible: true,
+      x: e.clientX,
+      y: e.clientY,
+      event: eventObj.resource,
+    });
+  };
+
+  const handleCloseContextMenu = () => {
+    setContextMenu({ visible: false, x: 0, y: 0, event: null });
+  };
+
   return (
     <div className="h-full" style={{ position: 'relative' }}>
       <BigCalendar
@@ -104,6 +139,7 @@ export default function Calendar({ events, onEventClick }: CalendarProps) {
         style={{ height: '100%', minHeight: '400px' }}
         eventPropGetter={eventStyleGetter}
         onSelectEvent={handleEventClick}
+        onDoubleClickEvent={handleEventClick}
         views={['month', 'week', 'day']}
         view={view}
         date={date}
@@ -161,9 +197,45 @@ export default function Calendar({ events, onEventClick }: CalendarProps) {
                 </span>
               </div>
             );
-          }
+          },
+          eventWrapper: (props: any) => (
+            <EventWrapper {...props} onContextMenu={handleEventRightClick} />
+          ),
         }}
       />
+      {contextMenu.visible && contextMenu.event && (
+        <div
+          className="fixed z-50 bg-white border rounded shadow-lg py-1 text-sm"
+          style={{ top: contextMenu.y, left: contextMenu.x, minWidth: 120 }}
+          onClick={handleCloseContextMenu}
+          onContextMenu={e => e.preventDefault()}
+        >
+          <button
+            className="block w-full text-left px-4 py-2 hover:bg-gray-100"
+            onClick={e => {
+              e.stopPropagation();
+              handleCloseContextMenu();
+              if (onEventClick) onEventClick(contextMenu.event);
+            }}
+          >Edit</button>
+          <button
+            className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600"
+            onClick={e => {
+              e.stopPropagation();
+              handleCloseContextMenu();
+              if (onEventDelete) onEventDelete(contextMenu.event);
+            }}
+          >Delete</button>
+        </div>
+      )}
+      {/* Close context menu on click outside */}
+      {contextMenu.visible && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={handleCloseContextMenu}
+          onContextMenu={handleCloseContextMenu}
+        />
+      )}
     </div>
   );
 } 

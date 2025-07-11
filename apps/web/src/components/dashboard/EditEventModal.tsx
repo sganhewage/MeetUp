@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { api } from "@packages/backend/convex/_generated/api";
 import { useMutation } from "convex/react";
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 interface Event {
   _id: string;
@@ -33,8 +35,8 @@ const EditEventModal = ({ isOpen, onClose, event }: EditEventModalProps) => {
   // Form state
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
+  const [startTime, setStartTime] = useState<Date | null>(null);
+  const [endTime, setEndTime] = useState<Date | null>(null);
   const [location, setLocation] = useState("");
   const [isAllDay, setIsAllDay] = useState(false);
 
@@ -43,8 +45,16 @@ const EditEventModal = ({ isOpen, onClose, event }: EditEventModalProps) => {
     if (event) {
       setTitle(event.title);
       setDescription(event.description || "");
-      setStartTime(event.startTime.slice(0, 16)); // Format for datetime-local input
-      setEndTime(event.endTime.slice(0, 16));
+      // For all-day events, subtract one day from end for input
+      if (event.isAllDay) {
+        setStartTime(new Date(event.startTime));
+        const end = new Date(event.endTime);
+        end.setDate(end.getDate() - 1);
+        setEndTime(end);
+      } else {
+        setStartTime(new Date(event.startTime));
+        setEndTime(new Date(event.endTime));
+      }
       setLocation(event.location || "");
       setIsAllDay(event.isAllDay);
     }
@@ -53,7 +63,26 @@ const EditEventModal = ({ isOpen, onClose, event }: EditEventModalProps) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!event) return;
+    if (!event || !startTime || !endTime) return;
+
+    // Adjust for all-day and multi-day events (same as CreateEventModal)
+    let adjustedStart = new Date(startTime);
+    let adjustedEnd = new Date(endTime);
+    if (isAllDay) {
+      adjustedStart.setHours(0, 0, 0, 0);
+      adjustedEnd.setHours(0, 0, 0, 0);
+      adjustedEnd.setDate(adjustedEnd.getDate() + 1);
+    } else {
+      if (
+        adjustedEnd.getHours() === 0 &&
+        adjustedEnd.getMinutes() === 0 &&
+        adjustedEnd.getSeconds() === 0 &&
+        adjustedEnd.getMilliseconds() === 0 &&
+        (adjustedEnd.getTime() - adjustedStart.getTime()) > 24 * 60 * 60 * 1000
+      ) {
+        adjustedEnd.setHours(23, 59, 59, 999);
+      }
+    }
 
     setIsSubmitting(true);
     try {
@@ -61,8 +90,8 @@ const EditEventModal = ({ isOpen, onClose, event }: EditEventModalProps) => {
         eventId: event._id as any,
         title,
         description: description || undefined,
-        startTime,
-        endTime,
+        startTime: adjustedStart.toISOString(),
+        endTime: adjustedEnd.toISOString(),
         location: location || undefined,
         isAllDay,
       });
@@ -77,14 +106,14 @@ const EditEventModal = ({ isOpen, onClose, event }: EditEventModalProps) => {
 
   const handleAllDayChange = (checked: boolean) => {
     setIsAllDay(checked);
-    if (checked) {
-      // For all-day events, set time to start of day
+    if (checked && startTime && endTime) {
+      // For all-day events, set time to start of day for start, and end of day for end
       const startDate = new Date(startTime);
       const endDate = new Date(endTime);
       startDate.setHours(0, 0, 0, 0);
-      endDate.setHours(23, 59, 59, 999);
-      setStartTime(startDate.toISOString().slice(0, 16));
-      setEndTime(endDate.toISOString().slice(0, 16));
+      endDate.setHours(0, 0, 0, 0);
+      setStartTime(startDate);
+      setEndTime(endDate);
     }
   };
 
@@ -144,26 +173,33 @@ const EditEventModal = ({ isOpen, onClose, event }: EditEventModalProps) => {
               <label htmlFor="startTime" className="block text-sm font-medium text-gray-700 mb-1">
                 Start {isAllDay ? 'Date' : 'Date & Time'} *
               </label>
-              <input
-                type={isAllDay ? "date" : "datetime-local"}
+              <DatePicker
                 id="startTime"
-                value={isAllDay ? startTime.slice(0, 10) : startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                required
+                selected={startTime}
+                onChange={(date) => setStartTime(date)}
+                showTimeSelect={!isAllDay}
+                dateFormat={isAllDay ? "yyyy-MM-dd" : "Pp"}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholderText={isAllDay ? "Select date" : "Select date and time"}
+                required
+                popperPlacement="bottom-start"
               />
             </div>
             <div>
               <label htmlFor="endTime" className="block text-sm font-medium text-gray-700 mb-1">
                 End {isAllDay ? 'Date' : 'Date & Time'} *
               </label>
-              <input
-                type={isAllDay ? "date" : "datetime-local"}
+              <DatePicker
                 id="endTime"
-                value={isAllDay ? endTime.slice(0, 10) : endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                required
+                selected={endTime}
+                onChange={(date) => setEndTime(date)}
+                showTimeSelect={!isAllDay}
+                dateFormat={isAllDay ? "yyyy-MM-dd" : "Pp"}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholderText={isAllDay ? "Select date" : "Select date and time"}
+                required
+                minDate={startTime || undefined}
+                popperPlacement="bottom-start"
               />
             </div>
           </div>
