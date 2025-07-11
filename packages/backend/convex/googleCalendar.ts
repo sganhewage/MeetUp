@@ -165,7 +165,7 @@ export const refreshGoogleToken = action({
   args: {
     accountId: v.id("calendarAccounts"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<string> => {
     const account = await ctx.runQuery(api.googleCalendar.getCalendarAccount, {
       accountId: args.accountId,
     });
@@ -193,7 +193,7 @@ export const refreshGoogleToken = action({
       throw new Error("Failed to refresh token");
     }
 
-    const tokenData = await tokenResponse.json();
+    const tokenData: { access_token: string; expires_in: number } = await tokenResponse.json();
     const { access_token, expires_in } = tokenData;
 
     // Update the account with new access token
@@ -270,7 +270,7 @@ export const syncGoogleCalendar = action({
     const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     const oneMonthFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
-    const eventsResponse = await fetch(
+    const eventsResponse: Response = await fetch(
       `https://www.googleapis.com/calendar/v3/calendars/primary/events?` +
       `timeMin=${oneMonthAgo.toISOString()}&` +
       `timeMax=${oneMonthFromNow.toISOString()}&` +
@@ -283,11 +283,19 @@ export const syncGoogleCalendar = action({
       throw new Error(`Failed to fetch calendar events: ${eventsResponse.statusText}`);
     }
 
-    const eventsData = await eventsResponse.json();
-    const events = eventsData.items || [];
+    const eventsData: { items?: any[] } = await eventsResponse.json();
+    const events: any[] = eventsData.items || [];
 
     // Transform Google Calendar events to our format
-    const transformedEvents = events.map((event: any) => ({
+    const transformedEvents: Array<{
+      externalEventId: string;
+      title: string;
+      description: string;
+      startTime: string;
+      endTime: string;
+      location: string;
+      isAllDay: boolean;
+    }> = events.map((event: any) => ({
       externalEventId: event.id,
       title: event.summary || "Untitled Event",
       description: event.description || "",
@@ -387,6 +395,7 @@ export const syncEventsToDatabase = mutation({
     });
   },
 });
+
 
 // Get sync status
 export const getSyncStatus = query({

@@ -28,7 +28,7 @@ const Dashboard = () => {
   const updateAccount = useMutation(api.events.updateCalendarAccount);
   const deleteAccount = useMutation(api.events.deleteCalendarAccount);
   const generateGoogleOAuthUrl = useAction(api.googleCalendar.generateGoogleOAuthUrl);
-  // const syncGoogleCalendar = useAction(api.googleCalendar.syncGoogleCalendar);
+  const syncGoogleCalendar = useAction(api.googleCalendar.syncGoogleCalendar);
 
   // Convert backend data to frontend format
   const syncedAccounts: SyncedAccount[] = calendarAccounts?.map((account: any) => ({
@@ -101,6 +101,21 @@ const Dashboard = () => {
     setSelectedEvent(event);
     setIsEventPreviewModalOpen(false);
     setIsEditEventModalOpen(true);
+  };
+
+  const handleSync = async () => {
+    try {
+      // get calender account id
+      const accountId = syncedAccounts.find(account => account.isConnected && account.type === "google")?.id;
+      if (!accountId) {
+        alert("No connected calendar account found");
+        return;
+      }
+      await syncGoogleCalendar({ accountId: accountId as any });
+      alert("Synced!");
+    } catch (error) {
+      console.error("Failed to sync:", error);
+    }
   };
 
   const getAccountIcon = (type: string) => {
@@ -233,7 +248,7 @@ const Dashboard = () => {
                         {account.isConnected && account.type === "google" && (
                           <button
                             onClick={async () => {
-                              alert("Sync functionality will be implemented soon!");
+                              handleSync();
                             }}
                             className="text-xs px-2 py-1 rounded-full transition-colors bg-blue-100 text-blue-800 hover:bg-blue-200"
                           >
