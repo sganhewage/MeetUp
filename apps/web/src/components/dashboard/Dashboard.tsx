@@ -6,6 +6,8 @@ import { api } from "@packages/backend/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 import AddAccountModal from "./AddAccountModal";
 import CreateEventModal from "./CreateEventModal";
+import EventPreviewModal from "./EventPreviewModal";
+import EditEventModal from "./EditEventModal";
 import Calendar from "./Calendar";
 
 interface SyncedAccount {
@@ -39,6 +41,9 @@ const Dashboard = () => {
   // Modal state
   const [isAddAccountModalOpen, setIsAddAccountModalOpen] = useState(false);
   const [isCreateEventModalOpen, setIsCreateEventModalOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [isEventPreviewModalOpen, setIsEventPreviewModalOpen] = useState(false);
+  const [isEditEventModalOpen, setIsEditEventModalOpen] = useState(false);
 
   const toggleAccount = async (accountId: string) => {
     const account = syncedAccounts.find(acc => acc.id === accountId);
@@ -59,6 +64,17 @@ const Dashboard = () => {
     console.log("Adding account for provider:", provider);
     // TODO: Implement OAuth flow for the selected provider
     alert(`OAuth flow for ${provider} will be implemented next!`);
+  };
+
+  const handleEventClick = (event: any) => {
+    setSelectedEvent(event);
+    setIsEventPreviewModalOpen(true);
+  };
+
+  const handleEditEvent = (event: any) => {
+    setSelectedEvent(event);
+    setIsEventPreviewModalOpen(false);
+    setIsEditEventModalOpen(true);
   };
 
   const getAccountIcon = (type: string) => {
@@ -111,10 +127,7 @@ const Dashboard = () => {
                 {userEvents && userEvents.length > 0 ? (
                   <Calendar 
                     events={userEvents} 
-                    onEventClick={(event) => {
-                      console.log("Event clicked:", event);
-                      // TODO: Open event details modal
-                    }}
+                    onEventClick={handleEventClick}
                   />
                 ) : (
                   <div className="text-center text-gray-500 h-full flex items-center justify-center">
@@ -240,6 +253,25 @@ const Dashboard = () => {
       <CreateEventModal
         isOpen={isCreateEventModalOpen}
         onClose={() => setIsCreateEventModalOpen(false)}
+      />
+      
+      <EventPreviewModal
+        isOpen={isEventPreviewModalOpen}
+        onClose={() => {
+          setIsEventPreviewModalOpen(false);
+          setSelectedEvent(null);
+        }}
+        event={selectedEvent}
+        onEdit={handleEditEvent}
+      />
+      
+      <EditEventModal
+        isOpen={isEditEventModalOpen}
+        onClose={() => {
+          setIsEditEventModalOpen(false);
+          setSelectedEvent(null);
+        }}
+        event={selectedEvent}
       />
     </div>
   );

@@ -294,4 +294,55 @@ export const createEvent = mutation({
 
     return eventId;
   },
+});
+
+// Delete an event
+export const deleteEvent = mutation({
+  args: {
+    eventId: v.id("events"),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getUserId(ctx);
+    if (!userId) throw new Error("User not found");
+
+    const event = await ctx.db.get(args.eventId);
+    if (!event || event.userId !== userId) {
+      throw new Error("Event not found or access denied");
+    }
+
+    // Soft delete the event
+    await ctx.db.patch(args.eventId, { isDeleted: true });
+  },
+});
+
+// Update an event
+export const updateEvent = mutation({
+  args: {
+    eventId: v.id("events"),
+    title: v.string(),
+    description: v.optional(v.string()),
+    startTime: v.string(),
+    endTime: v.string(),
+    location: v.optional(v.string()),
+    isAllDay: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getUserId(ctx);
+    if (!userId) throw new Error("User not found");
+
+    const event = await ctx.db.get(args.eventId);
+    if (!event || event.userId !== userId) {
+      throw new Error("Event not found or access denied");
+    }
+
+    await ctx.db.patch(args.eventId, {
+      title: args.title,
+      description: args.description,
+      startTime: args.startTime,
+      endTime: args.endTime,
+      location: args.location,
+      isAllDay: args.isAllDay,
+      lastModified: Date.now(),
+    });
+  },
 }); 
