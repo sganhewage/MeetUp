@@ -33,13 +33,23 @@ const EventPreviewModal = ({ isOpen, onClose, event, onEdit }: EventPreviewModal
 
   if (!isOpen || !event) return null;
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
+  const formatDate = (dateStr: string, isAllDay: boolean = false) => {
+    if (!dateStr) return '';
+    if (isAllDay && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      const [year, month, day] = dateStr.split('-');
+      return new Date(Number(year), Number(month) - 1, Number(day)).toLocaleDateString();
+    }
+    const d = new Date(dateStr);
+    return d.toLocaleDateString();
+  };
+
+  // For all-day events, get the display end date (endTime - 1 day)
+  const getAllDayEndDate = (start: string, end: string) => {
+    if (!end || !/^\d{4}-\d{2}-\d{2}$/.test(end)) return '';
+    const [ey, em, ed] = end.split('-');
+    const endDate = new Date(Number(ey), Number(em) - 1, Number(ed));
+    endDate.setDate(endDate.getDate() - 1);
+    return endDate;
   };
 
   const formatDateTime = (dateString: string) => {
@@ -134,30 +144,34 @@ const EventPreviewModal = ({ isOpen, onClose, event, onEdit }: EventPreviewModal
             )}
           </div>
 
-          {/* Date & Time */}
-          <div className="space-y-2">
-            <div className="flex items-start space-x-3">
-              <div className="text-gray-400 mt-1">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <div className="text-sm text-gray-700">
-                {event.isAllDay ? (
-                  <div>
-                    <div className="font-medium">All Day</div>
-                    <div>{getAllDayRange(event.startTime, event.endTime)}</div>
-                  </div>
-                ) : (
-                  <div>
-                    <div className="font-medium">{formatDateTime(event.startTime)}</div>
-                    <div className="text-gray-500">
-                      {formatDateTime(event.startTime)}<br/>to<br/>{formatDateTime(event.endTime)}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
+          {/* Event Date/Time */}
+          <div className="flex items-center space-x-2 mt-4">
+            <span className="font-medium text-gray-700">When:</span>
+            {event.isAllDay ? (
+              (() => {
+                const start = event.startTime;
+                const end = event.endTime;
+                const displayEnd = getAllDayEndDate(start, end);
+                if (displayEnd && start !== end) {
+                  return (
+                    <span className="text-gray-900">
+                      All day: {formatDate(start, true)} - {formatDate(displayEnd.toISOString().slice(0, 10), true)}
+                    </span>
+                  );
+                } else {
+                  return (
+                    <span className="text-gray-900">All day on {formatDate(start, true)}</span>
+                  );
+                }
+              })()
+            ) : (
+              <span className="text-gray-900">
+                {formatDate(event.startTime)}
+                {" "}
+                {formatTime(event.startTime)} - {formatTime(event.endTime)}
+              </span>
+            )}
+          </div>
 
             {/* Location */}
             {event.location && (
@@ -190,7 +204,6 @@ const EventPreviewModal = ({ isOpen, onClose, event, onEdit }: EventPreviewModal
               </div>
             )}
           </div>
-        </div>
 
         {/* Actions */}
         <div className="flex items-center justify-end space-x-3 p-6 border-t bg-gray-50">

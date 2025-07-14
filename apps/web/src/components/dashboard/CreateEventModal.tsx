@@ -37,7 +37,17 @@ export default function CreateEventModal({ isOpen, onClose }: CreateEventModalPr
       // For all-day events, set end to the next day at midnight (exclusive end)
       adjustedStart.setHours(0, 0, 0, 0);
       adjustedEnd.setHours(0, 0, 0, 0);
-      adjustedEnd.setDate(adjustedEnd.getDate() + 1);
+      // If start and end are the same day, add 1 day to end
+      if (
+        adjustedStart.getFullYear() === adjustedEnd.getFullYear() &&
+        adjustedStart.getMonth() === adjustedEnd.getMonth() &&
+        adjustedStart.getDate() === adjustedEnd.getDate()
+      ) {
+        adjustedEnd.setDate(adjustedEnd.getDate() + 1);
+      } else {
+        // For multi-day, always add 1 day to end to make it exclusive
+        adjustedEnd.setDate(adjustedEnd.getDate() + 1);
+      }
     } else {
       // For multi-day timed events, if end is at 00:00, set to 23:59:59.999 of that day
       if (

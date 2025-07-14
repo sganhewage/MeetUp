@@ -40,15 +40,21 @@ const EditEventModal = ({ isOpen, onClose, event }: EditEventModalProps) => {
   const [location, setLocation] = useState("");
   const [isAllDay, setIsAllDay] = useState(false);
 
+  // Helper to parse YYYY-MM-DD as local date
+  function parseLocalDate(dateStr: string) {
+    const [year, month, day] = dateStr.split('-');
+    return new Date(Number(year), Number(month) - 1, Number(day));
+  }
+
   // Initialize form when event changes
   useEffect(() => {
     if (event) {
       setTitle(event.title);
       setDescription(event.description || "");
-      // For all-day events, subtract one day from end for input
       if (event.isAllDay) {
-        setStartTime(new Date(event.startTime));
-        const end = new Date(event.endTime);
+        setStartTime(parseLocalDate(event.startTime));
+        // For the end date, subtract one day for the inclusive range
+        const end = parseLocalDate(event.endTime);
         end.setDate(end.getDate() - 1);
         setEndTime(end);
       } else {
@@ -71,6 +77,7 @@ const EditEventModal = ({ isOpen, onClose, event }: EditEventModalProps) => {
     if (isAllDay) {
       adjustedStart.setHours(0, 0, 0, 0);
       adjustedEnd.setHours(0, 0, 0, 0);
+      // Always add 1 day to the end date for all-day events (exclusive end)
       adjustedEnd.setDate(adjustedEnd.getDate() + 1);
     } else {
       if (

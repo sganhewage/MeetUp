@@ -299,11 +299,10 @@ export const syncGoogleCalendar = action({
       const isAllDay = !event.start.dateTime;
       let startTime = event.start.dateTime || event.start.date;
       let endTime = event.end.dateTime || event.end.date;
-      if (isAllDay && endTime) {
-        // Subtract one day from end date for all-day events
-        const end = new Date(endTime);
-        end.setDate(end.getDate() - 1);
-        endTime = end.toISOString().split('T')[0]; // Keep as date string
+      if (isAllDay && event.start.date && event.end.date) {
+        // For all-day events, use Google's start.date and end.date directly (end is exclusive)
+        startTime = event.start.date;
+        endTime = event.end.date;
       }
       return {
         externalEventId: event.id,

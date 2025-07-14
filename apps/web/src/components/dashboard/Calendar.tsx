@@ -68,14 +68,31 @@ export default function Calendar({ events, onEventClick, onEventDelete }: Calend
   }>({ visible: false, x: 0, y: 0, event: null });
 
   // Convert events to react-big-calendar format
-  const calendarEvents = events.map(event => ({
-    id: event._id,
-    title: event.title,
-    start: new Date(event.startTime),
-    end: new Date(event.endTime),
-    allDay: event.isAllDay,
-    resource: event, // Store the original event data
-  }));
+  const calendarEvents = events.map(event => {
+    let start, end;
+    if (
+      event.isAllDay &&
+      /^\d{4}-\d{2}-\d{2}$/.test(event.startTime) &&
+      /^\d{4}-\d{2}-\d{2}$/.test(event.endTime)
+    ) {
+      const [sy, sm, sd] = event.startTime.split('-');
+      start = new Date(Number(sy), Number(sm) - 1, Number(sd));
+      const [ey, em, ed] = event.endTime.split('-');
+      end = new Date(Number(ey), Number(em) - 1, Number(ed));
+      // Do NOT subtract a day; use the exclusive end date as provided
+    } else {
+      start = new Date(event.startTime);
+      end = new Date(event.endTime);
+    }
+    return {
+      id: event._id,
+      title: event.title,
+      start,
+      end,
+      allDay: event.isAllDay,
+      resource: event, // Store the original event data
+    };
+  });
 
   console.log('Calendar events:', calendarEvents);
   console.log('Calendar component rendered');
