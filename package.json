@@ -10,7 +10,8 @@
   "devDependencies": {
     "@types/react-big-calendar": "^1.16.2",
     "prettier": "^3.2.5",
-    "turbo": "^2.0.12"
+    "turbo": "^2.0.12",
+    "convex": "^1.25.0"
   },
   "engines": {
     "node": ">=18.8.0"

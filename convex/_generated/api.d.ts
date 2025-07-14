@@ -13,13 +13,6 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
-import type * as env from "../env.js";
-import type * as events from "../events.js";
-import type * as googleCalendar from "../googleCalendar.js";
-import type * as notes from "../notes.js";
-import type * as openai from "../openai.js";
-import type * as outlookCalendar from "../outlookCalendar.js";
-import type * as utils from "../utils.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -29,15 +22,7 @@ import type * as utils from "../utils.js";
  * const myFunctionReference = api.myModule.myFunction;
  * ```
  */
-declare const fullApi: ApiFromModules<{
-  env: typeof env;
-  events: typeof events;
-  googleCalendar: typeof googleCalendar;
-  notes: typeof notes;
-  openai: typeof openai;
-  outlookCalendar: typeof outlookCalendar;
-  utils: typeof utils;
-}>;
+declare const fullApi: ApiFromModules<{}>;
 export declare const api: FilterApi<
   typeof fullApi,
   FunctionReference<any, "public">

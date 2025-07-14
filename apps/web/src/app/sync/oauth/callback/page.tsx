@@ -11,6 +11,7 @@ export default function OAuthCallbackPage() {
   const [message, setMessage] = useState("Processing authorization...");
   
   const handleGoogleOAuthCallback = useAction(api.googleCalendar.handleGoogleOAuthCallback);
+  const handleOutlookOAuthCallback = useAction(api.outlookCalendar.handleOutlookOAuthCallback);
 
   useEffect(() => {
     const processCallback = async () => {
@@ -22,8 +23,6 @@ export default function OAuthCallbackPage() {
         if (error) {
           setStatus("error");
           setMessage(`Authorization failed: ${error}`);
-          
-          // Send error message to parent window
           if (window.opener) {
             window.opener.postMessage({
               type: "OAUTH_ERROR",
@@ -36,8 +35,6 @@ export default function OAuthCallbackPage() {
         if (!code || !state) {
           setStatus("error");
           setMessage("Missing authorization code or state parameter");
-          
-          // Send error message to parent window
           if (window.opener) {
             window.opener.postMessage({
               type: "OAUTH_ERROR",
@@ -48,33 +45,36 @@ export default function OAuthCallbackPage() {
         }
 
         setMessage("Exchanging authorization code for access token...");
-        
-        const result = await handleGoogleOAuthCallback({
-          code,
-          state,
-        });
+
+        // Parse provider from state
+        let provider = "google";
+        try {
+          const stateObj = JSON.parse(decodeURIComponent(state));
+          if (stateObj.provider) provider = stateObj.provider;
+        } catch {}
+
+        let result;
+        if (provider === "outlook") {
+          result = await handleOutlookOAuthCallback({ code, state });
+        } else {
+          result = await handleGoogleOAuthCallback({ code, state });
+        }
 
         if (result.success) {
           setStatus("success");
           setMessage(`Successfully connected ${result.email} to your account!`);
-          
-          // Send success message to parent window
           if (window.opener) {
             window.opener.postMessage({
               type: "OAUTH_SUCCESS",
               email: result.email
             }, window.location.origin);
           }
-          
-          // Close popup after a short delay
           setTimeout(() => {
             window.close();
           }, 1500);
         } else {
           setStatus("error");
           setMessage("Failed to complete authorization");
-          
-          // Send error message to parent window
           if (window.opener) {
             window.opener.postMessage({
               type: "OAUTH_ERROR",
@@ -86,8 +86,6 @@ export default function OAuthCallbackPage() {
         console.error("OAuth callback error:", error);
         setStatus("error");
         setMessage(error instanceof Error ? error.message : "An unexpected error occurred");
-        
-        // Send error message to parent window
         if (window.opener) {
           window.opener.postMessage({
             type: "OAUTH_ERROR",
@@ -98,7 +96,7 @@ export default function OAuthCallbackPage() {
     };
 
     processCallback();
-  }, [searchParams, handleGoogleOAuthCallback]);
+  }, [searchParams, handleGoogleOAuthCallback, handleOutlookOAuthCallback]);
 
   return (
     <div className="min-h-screen bg-[#EDEDED] flex items-center justify-center">

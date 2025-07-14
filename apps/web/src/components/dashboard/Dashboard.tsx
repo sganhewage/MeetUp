@@ -32,6 +32,7 @@ const Dashboard = () => {
   const generateGoogleOAuthUrl = useAction(api.googleCalendar.generateGoogleOAuthUrl);
   const syncGoogleCalendar = useAction(api.googleCalendar.syncGoogleCalendar);
   const deleteEvent = useMutation(api.events.deleteEvent);
+  const syncOutlookCalendar = useAction(api.outlookCalendar.syncOutlookCalendar);
 
   // Convert backend data to frontend format
   const syncedAccounts: SyncedAccount[] = calendarAccounts?.map((account: any) => ({
@@ -119,19 +120,24 @@ const Dashboard = () => {
     setIsEditEventModalOpen(true);
   };
 
-  const handleSync = async () => {
+  const handleSync = async (account: SyncedAccount) => {
     try {
-      // get calender account id
-      const accountId = syncedAccounts.find(account => account.isConnected && account.type === "google")?.id;
-      if (!accountId) {
-        toast.error("No connected calendar account found");
-        return;
+      setSyncingAccounts((prev) => new Set(prev).add(account.id));
+      if (account.type === "google") {
+        await syncGoogleCalendar({ accountId: account.id as any });
+      } else if (account.type === "outlook") {
+        await syncOutlookCalendar({ accountId: account.id as any });
       }
-      await syncGoogleCalendar({ accountId: accountId as any });
       toast.success("Synced!");
     } catch (error) {
       console.error("Failed to sync:", error);
       toast.error("Failed to sync calendar");
+    } finally {
+      setSyncingAccounts((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(account.id);
+        return newSet;
+      });
     }
   };
 
@@ -174,11 +180,11 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="container h-screen flex flex-col pb-10">
+    <div className="container dashboard-content flex flex-col pb-10">
       <h1 className="text-[#2D2D2D] text-center text-[20px] sm:text-[43px] not-italic font-normal sm:font-medium leading-[114.3%] tracking-[-1.075px] sm:mt-8 my-4 sm:mb-10">
         Calendar Dashboard
       </h1>
-      <div className="flex flex-1 gap-8 px-5 sm:px-0">
+      <div className="flex flex-1 gap-8 px-5 sm:px-0 min-h-0">
         {/* Calendar Section */}
         <div className="flex-1 bg-white rounded-lg shadow-lg p-6 flex flex-col min-h-0">
           <h2 className="text-[#2D2D2D] text-xl sm:text-2xl font-semibold mb-4">
@@ -203,7 +209,7 @@ const Dashboard = () => {
           </div>
         </div>
         {/* Right Column: Synced Accounts + Quick Actions */}
-        <div className="flex flex-col w-full max-w-md space-y-6">
+        <div className="flex flex-col w-full max-w-md space-y-6 min-h-0">
           <div className="bg-white rounded-lg shadow-lg p-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-[#2D2D2D] text-xl sm:text-2xl font-semibold">
@@ -251,14 +257,15 @@ const Dashboard = () => {
                       }`}>
                         {account.isConnected ? 'Connected' : 'Disconnected'}
                       </span>
-                      {account.isConnected && account.type === "google" && (
+                      {account.isConnected && (account.type === "google" || account.type === "outlook") && (
                         <button
                           onClick={async () => {
-                            handleSync();
+                            handleSync(account);
                           }}
-                          className="text-xs px-2 py-1 rounded-full transition-colors bg-blue-100 text-blue-800 hover:bg-blue-200"
+                          className={`text-xs px-2 py-1 rounded-full transition-colors bg-blue-100 text-blue-800 hover:bg-blue-200 ${syncingAccounts.has(account.id) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          disabled={syncingAccounts.has(account.id)}
                         >
-                          Sync
+                          {syncingAccounts.has(account.id) ? 'Syncing...' : 'Sync'}
                         </button>
                       )}
                       <label className="relative inline-flex items-center cursor-pointer">

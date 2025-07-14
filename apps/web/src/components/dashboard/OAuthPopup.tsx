@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAction } from "convex/react";
 import { api } from "@packages/backend/convex/_generated/api";
+import { toast } from "react-toastify";
 
 interface OAuthPopupProps {
   provider: "google" | "outlook" | "apple";
@@ -15,6 +16,7 @@ export default function OAuthPopup({ provider, onSuccess, onError, onClose }: OA
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const generateGoogleOAuthUrl = useAction(api.googleCalendar.generateGoogleOAuthUrl);
+  const generateOutlookOAuthUrl = useAction(api.outlookCalendar.generateOutlookOAuthUrl);
 
   useEffect(() => {
     const handleOAuth = async () => {
@@ -64,6 +66,45 @@ export default function OAuthPopup({ provider, onSuccess, onError, onClose }: OA
             }
           }, 1000);
 
+        } else if (provider === "outlook") {
+          const authUrl = await generateOutlookOAuthUrl();
+          // Open popup window
+          const popup = window.open(
+            authUrl,
+            "oauth-popup",
+            "width=500,height=600,scrollbars=yes,resizable=yes"
+          );
+
+          if (!popup) {
+            throw new Error("Popup blocked. Please allow popups for this site.");
+          }
+
+          // Listen for messages from the popup
+          const handleMessage = (event: MessageEvent) => {
+            if (event.origin !== window.location.origin) {
+              return;
+            }
+            if (event.data.type === "OAUTH_SUCCESS") {
+              onSuccess(event.data.email);
+              popup.close();
+              window.removeEventListener("message", handleMessage);
+            } else if (event.data.type === "OAUTH_ERROR") {
+              onError(event.data.error);
+              popup.close();
+              window.removeEventListener("message", handleMessage);
+            }
+          };
+
+          window.addEventListener("message", handleMessage);
+
+          // Check if popup was closed manually
+          const checkClosed = setInterval(() => {
+            if (popup.closed) {
+              clearInterval(checkClosed);
+              window.removeEventListener("message", handleMessage);
+              onClose();
+            }
+          }, 1000);
         } else {
           // For other providers, show placeholder
           onError(`OAuth for ${provider} is not implemented yet.`);
@@ -77,7 +118,7 @@ export default function OAuthPopup({ provider, onSuccess, onError, onClose }: OA
     };
 
     handleOAuth();
-  }, [provider, generateGoogleOAuthUrl, onSuccess, onError, onClose]);
+  }, [provider, generateGoogleOAuthUrl, generateOutlookOAuthUrl, onSuccess, onError, onClose]);
 
   if (isLoading) {
     return (

@@ -24,7 +24,7 @@ export const generateGoogleOAuthUrl = action({
       "https://www.googleapis.com/auth/userinfo.profile"
     ].join(" "));
 
-    const state = encodeURIComponent(JSON.stringify({ userId, timestamp: Date.now() }));
+    const state = encodeURIComponent(JSON.stringify({ userId, provider: "google", timestamp: Date.now() }));
     
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${clientId}&` +
@@ -295,15 +295,26 @@ export const syncGoogleCalendar = action({
       endTime: string;
       location: string;
       isAllDay: boolean;
-    }> = events.map((event: any) => ({
-      externalEventId: event.id,
-      title: event.summary || "Untitled Event",
-      description: event.description || "",
-      startTime: event.start.dateTime || event.start.date,
-      endTime: event.end.dateTime || event.end.date,
-      location: event.location || "",
-      isAllDay: !event.start.dateTime, // If no dateTime, it's an all-day event
-    }));
+    }> = events.map((event: any) => {
+      const isAllDay = !event.start.dateTime;
+      let startTime = event.start.dateTime || event.start.date;
+      let endTime = event.end.dateTime || event.end.date;
+      if (isAllDay && endTime) {
+        // Subtract one day from end date for all-day events
+        const end = new Date(endTime);
+        end.setDate(end.getDate() - 1);
+        endTime = end.toISOString().split('T')[0]; // Keep as date string
+      }
+      return {
+        externalEventId: event.id,
+        title: event.summary || "Untitled Event",
+        description: event.description || "",
+        startTime,
+        endTime,
+        location: event.location || "",
+        isAllDay,
+      };
+    });
 
     // Sync events to database
     await ctx.runMutation(api.googleCalendar.syncEventsToDatabase, {
