@@ -28,4 +28,30 @@ export default defineSchema({
     lastModified: v.number(), // timestamp
     isDeleted: v.boolean(), // soft delete for sync management
   }),
+
+  // Groups for collaborative scheduling
+  groups: defineTable({
+    name: v.string(),
+    description: v.optional(v.string()),
+    createdBy: v.string(), // user id
+    createdAt: v.number(), // timestamp
+  }),
+
+  // Memberships linking users to groups
+  group_memberships: defineTable({
+    groupId: v.id("groups"),
+    userId: v.string(), // user id
+    role: v.union(v.literal("admin"), v.literal("member")),
+    joinedAt: v.number(),
+  })
+    .index("by_userId", ["userId"]) // for listUserGroups
+    .index("by_groupId", ["groupId"]), // for listGroupMembers and deleteGroup
+
+  // Optional: Shared group events
+  group_events: defineTable({
+    groupId: v.id("groups"),
+    eventId: v.id("events"),
+    createdAt: v.number(),
+  })
+    .index("by_groupId", ["groupId"]),
 });

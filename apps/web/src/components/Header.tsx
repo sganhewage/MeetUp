@@ -15,13 +15,19 @@ type NavigationItem = {
 };
 
 const navigation: NavigationItem[] = [
-  { name: "Benefits", href: "#Benefits", current: true },
-  { name: "Reviews", href: "#reviews", current: false },
+  { name: "Calendar Dashboard", href: "/sync", current: false },
+  { name: "Group Dashboard", href: "/groups", current: false },
 ];
 
 export default function Header() {
   const { user } = useUser();
   const pathname = usePathname();
+
+  // Mark current page
+  const navWithCurrent = navigation.map((item) => ({
+    ...item,
+    current: pathname === item.href,
+  }));
 
   return (
     <Disclosure as="nav" className=" ">
@@ -36,35 +42,25 @@ export default function Header() {
                 <div className="sm:flex hidden shrink-0 items-center">
                   <Logo />
                 </div>
-                {pathname === "/" && (
-                  <div className="flex flex-1 items-center justify-center ">
-                    <div className="hidden sm:ml-6 sm:block">
-                      <ul className="flex space-x-28">
-                        {navigation.map((item) => (
-                          <li key={item.name}>
-                            <Link
-                              href={item.href}
-                              className="text-[#2D2D2D] text-center text-xl not-italic font-normal leading-[normal]"
-                              aria-current={item.current ? "page" : undefined}
-                            >
-                              {item.name}
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
+                <div className="flex flex-1 items-center justify-center ">
+                  <div className="hidden sm:ml-6 sm:block">
+                    <ul className="flex space-x-28">
+                      {navWithCurrent.map((item) => (
+                        <li key={item.name}>
+                          <Link
+                            href={item.href}
+                            className={`text-[#2D2D2D] text-center text-xl not-italic font-normal leading-[normal] ${item.current ? "font-bold underline" : ""}`}
+                            aria-current={item.current ? "page" : undefined}
+                          >
+                            {item.name}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                )}
+                </div>
                 {user ? (
                   <div className="hidden sm:flex absolute inset-y-0 right-0 gap-6 items-center pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
-                    <Link href="/sync">
-                      <button
-                        type="button"
-                        className=" text-white text-center text-xl not-italic font-normal leading-[normal] font-montserrat px-[22px] py-[11px] button"
-                      >
-                        Sync Calendar
-                      </button>
-                    </Link>
                     <UserNav
                       image={user?.imageUrl}
                       name={user?.fullName!}
@@ -105,12 +101,12 @@ export default function Header() {
 
           <DisclosurePanel className="sm:hidden">
             <div className="space-y-1 px-2 pb-3 pt-2 flex flex-col gap-3 items-start">
-              {navigation.map((item) => (
+              {navWithCurrent.map((item) => (
                 <DisclosureButton
                   key={item.name}
                   as={Link}
                   href={item.href}
-                  className="text-[#2D2D2D] text-center text-xl not-italic font-normal leading-[normal]"
+                  className={`text-[#2D2D2D] text-center text-xl not-italic font-normal leading-[normal] ${item.current ? "font-bold underline" : ""}`}
                   aria-current={item.current ? "page" : undefined}
                 >
                   {item.name}

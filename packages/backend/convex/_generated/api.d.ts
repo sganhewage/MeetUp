@@ -16,6 +16,7 @@ import type {
 import type * as env from "../env.js";
 import type * as events from "../events.js";
 import type * as googleCalendar from "../googleCalendar.js";
+import type * as groups from "../groups.js";
 import type * as notes from "../notes.js";
 import type * as openai from "../openai.js";
 import type * as outlookCalendar from "../outlookCalendar.js";
@@ -33,6 +34,7 @@ declare const fullApi: ApiFromModules<{
   env: typeof env;
   events: typeof events;
   googleCalendar: typeof googleCalendar;
+  groups: typeof groups;
   notes: typeof notes;
   openai: typeof openai;
   outlookCalendar: typeof outlookCalendar;
