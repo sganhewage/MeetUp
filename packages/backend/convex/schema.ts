@@ -54,4 +54,15 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index("by_groupId", ["groupId"]),
+
+  // Group invites for inviting users by email
+  group_invites: defineTable({
+    groupId: v.id("groups"),
+    email: v.string(),
+    invitedBy: v.string(), // user id
+    status: v.union(v.literal("pending"), v.literal("accepted"), v.literal("declined")),
+    createdAt: v.number(),
+  })
+    .index("by_email", ["email"]) // for listing invites by email
+    .index("by_groupId", ["groupId"]), // for listing invites by group
 });
