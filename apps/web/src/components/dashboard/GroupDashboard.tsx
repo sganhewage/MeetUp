@@ -20,31 +20,11 @@ const GroupDashboard = ({ userId }: { userId: string }) => {
   const acceptInvite = useMutation(api.groups.acceptInvite);
   const declineInvite = useMutation(api.groups.declineInvite);
 
-  // State for mapping userId to email
-  const clerk = useClerk();
-  const [creatorEmails, setCreatorEmails] = useState<Record<string, string>>({});
-  const [loadingEmails, setLoadingEmails] = useState(false);
-
-  // Fetch emails for all unique createdBy userIds
-  useEffect(() => {
-    if (!groups) return;
-    const uniqueUserIds = Array.from(new Set(groups.map(g => g.createdBy)));
-    if (uniqueUserIds.length === 0) return;
-    setLoadingEmails(true);
-    Promise.all(
-      uniqueUserIds.map(async (userId) => {
-        try {
-          const user = await clerk.users.getUser(userId);
-          return [userId, user?.primaryEmailAddress?.emailAddress || user?.emailAddresses?.[0]?.emailAddress || userId];
-        } catch {
-          return [userId, userId];
-        }
-      })
-    ).then(results => {
-      setCreatorEmails(Object.fromEntries(results));
-      setLoadingEmails(false);
-    });
-  }, [groups, clerk]);
+  // Get unique creator userIds
+  const creatorUserIds = groups ? Array.from(new Set(groups.map(g => g.createdBy))) : [];
+  // Fetch emails for all unique createdBy userIds from Convex
+  const creatorEmails = useQuery(api.users.getUserEmailsByClerkIds, { clerkUserIds: creatorUserIds });
+  const loadingEmails = creatorEmails === undefined;
 
   // Modal/form state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -176,7 +156,7 @@ const GroupDashboard = ({ userId }: { userId: string }) => {
                       </div>
                       {group.description && <span className="text-gray-600">{group.description}</span>}
                       <span className="text-xs text-gray-400">
-                        Created by: {loadingEmails ? "Loading..." : (creatorEmails[group.createdBy] || group.createdBy)}
+                        Created by: {loadingEmails ? "Loading..." : (creatorEmails?.[group.createdBy] || group.createdBy)}
                       </span>
                     </div>
                     <a

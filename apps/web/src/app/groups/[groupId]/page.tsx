@@ -16,6 +16,9 @@ export default function GroupManagementPage() {
   // Fetch group directly from DB
   const group = useQuery(api.groups.getGroupById, { groupId });
   const members = useQuery(api.groups.listGroupMembers, { groupId });
+  // Fetch member names from users table using Clerk user IDs
+  const memberUserIds = members ? members.map(m => m.userId) : [];
+  const memberInfo = useQuery(api.users.getUserEmailsByClerkIds, { clerkUserIds: memberUserIds });
   const deleteGroup = useMutation(api.groups.deleteGroup);
   // Placeholder for leave/invite/remove actions
   const [inviteEmail, setInviteEmail] = useState("");
@@ -90,7 +93,7 @@ export default function GroupManagementPage() {
               <ul className="space-y-2">
                 {members.map(member => (
                   <li key={member.userId} className="flex items-center gap-2 bg-gray-50 rounded px-3 py-2">
-                    <span className="flex-1">{member.userId}</span>
+                    <span className="flex-1">{memberInfo?.[member.userId]?.name || memberInfo?.[member.userId]?.email || member.userId}</span>
                     <span className={`inline-block px-2 py-1 rounded text-xs font-semibold ${
                       member.role === 'admin' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
                     }`}>

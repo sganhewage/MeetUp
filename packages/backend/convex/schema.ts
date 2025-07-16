@@ -67,6 +67,7 @@ export default defineSchema({
     .index("by_groupId", ["groupId"]), // for listing invites by group
 
   users: defineTable({
+    clerkUserId: v.string(),
     firstName: v.string(),
     lastName: v.string(),
     email: v.string(),

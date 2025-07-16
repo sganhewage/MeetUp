@@ -20,6 +20,7 @@ import type * as groups from "../groups.js";
 import type * as notes from "../notes.js";
 import type * as openai from "../openai.js";
 import type * as outlookCalendar from "../outlookCalendar.js";
+import type * as users from "../users.js";
 import type * as utils from "../utils.js";
 
 /**
@@ -38,6 +39,7 @@ declare const fullApi: ApiFromModules<{
   notes: typeof notes;
   openai: typeof openai;
   outlookCalendar: typeof outlookCalendar;
+  users: typeof users;
   utils: typeof utils;
 }>;
 export declare const api: FilterApi<

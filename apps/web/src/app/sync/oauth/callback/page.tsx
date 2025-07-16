@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAction } from "convex/react";
 import { api } from "@packages/backend/convex/_generated/api";
+import { useRouter } from "next/navigation";
 
 export default function OAuthCallbackPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [message, setMessage] = useState("Processing authorization...");
   
