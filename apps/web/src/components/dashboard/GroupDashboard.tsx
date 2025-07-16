@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
 import { api } from "@packages/backend/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useEffect } from "react";
+import { useUser, useAuth, useClerk } from "@clerk/clerk-react";
+import { useMemo, useState } from "react";
 
 const MOCK_EMAIL = "user@example.com"; // TODO: Replace with real user email from auth
 
@@ -18,6 +19,32 @@ const GroupDashboard = ({ userId }: { userId: string }) => {
   const invites = useQuery(api.groups.listUserInvites, { email: MOCK_EMAIL });
   const acceptInvite = useMutation(api.groups.acceptInvite);
   const declineInvite = useMutation(api.groups.declineInvite);
+
+  // State for mapping userId to email
+  const clerk = useClerk();
+  const [creatorEmails, setCreatorEmails] = useState<Record<string, string>>({});
+  const [loadingEmails, setLoadingEmails] = useState(false);
+
+  // Fetch emails for all unique createdBy userIds
+  useEffect(() => {
+    if (!groups) return;
+    const uniqueUserIds = Array.from(new Set(groups.map(g => g.createdBy)));
+    if (uniqueUserIds.length === 0) return;
+    setLoadingEmails(true);
+    Promise.all(
+      uniqueUserIds.map(async (userId) => {
+        try {
+          const user = await clerk.users.getUser(userId);
+          return [userId, user?.primaryEmailAddress?.emailAddress || user?.emailAddresses?.[0]?.emailAddress || userId];
+        } catch {
+          return [userId, userId];
+        }
+      })
+    ).then(results => {
+      setCreatorEmails(Object.fromEntries(results));
+      setLoadingEmails(false);
+    });
+  }, [groups, clerk]);
 
   // Modal/form state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -148,7 +175,9 @@ const GroupDashboard = ({ userId }: { userId: string }) => {
                         </span>
                       </div>
                       {group.description && <span className="text-gray-600">{group.description}</span>}
-                      <span className="text-xs text-gray-400">Created by: {group.createdBy}</span>
+                      <span className="text-xs text-gray-400">
+                        Created by: {loadingEmails ? "Loading..." : (creatorEmails[group.createdBy] || group.createdBy)}
+                      </span>
                     </div>
                     <a
                       href={`/groups/${group._id}`}

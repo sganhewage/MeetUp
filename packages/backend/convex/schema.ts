@@ -65,4 +65,11 @@ export default defineSchema({
   })
     .index("by_email", ["email"]) // for listing invites by email
     .index("by_groupId", ["groupId"]), // for listing invites by group
+
+  users: defineTable({
+    firstName: v.string(),
+    lastName: v.string(),
+    email: v.string(),
+    signupDate: v.number(), // timestamp
+  }),
 });

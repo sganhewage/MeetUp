@@ -5,22 +5,23 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@packages/backend/convex/_generated/api";
 import { useState } from "react";
 import Header from "@/components/Header";
+import { useUser } from "@clerk/clerk-react";
+import { Id } from "@packages/backend/convex/_generated/dataModel";
 
 export default function GroupManagementPage() {
   const params = useParams();
-  const groupId = params?.groupId as string;
-  // TODO: Replace with real user ID from auth context
-  const userId = "mock-user-id";
+  const groupId = params?.groupId as Id<"groups">;
+  const { user, isLoaded } = useUser();
 
-  // Fetch group details and members
-  const group = useQuery(api.groups.listUserGroups, { userId })?.find(g => g._id === groupId as any);
-  const members = useQuery(api.groups.listGroupMembers, { groupId: groupId as any });
+  // Fetch group directly from DB
+  const group = useQuery(api.groups.getGroupById, { groupId });
+  const members = useQuery(api.groups.listGroupMembers, { groupId });
   const deleteGroup = useMutation(api.groups.deleteGroup);
   // Placeholder for leave/invite/remove actions
   const [inviteEmail, setInviteEmail] = useState("");
   const [removingUserId, setRemovingUserId] = useState<string | null>(null);
 
-  const isAdmin = group?.role === "admin";
+  const isAdmin = group && user && group.createdBy === user.id;
 
   const handleDeleteGroup = async () => {
     if (!window.confirm("Are you sure you want to delete this group? This cannot be undone.")) return;
@@ -47,6 +48,7 @@ export default function GroupManagementPage() {
     setRemovingUserId(null);
   };
 
+  if (!isLoaded) return <div className="container mx-auto py-10">Loading user...</div>;
   if (!group) {
     return <div className="container mx-auto py-10">Loading group...</div>;
   }
@@ -61,9 +63,9 @@ export default function GroupManagementPage() {
           <div className="mb-4 text-xs text-gray-400">Created by: {group.createdBy}</div>
           <div className="flex gap-2 mb-6">
             <span className={`inline-block px-2 py-1 rounded text-xs font-semibold ${
-              group.role === 'admin' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+              isAdmin ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
             }`}>
-              {group.role === 'admin' ? 'Admin' : 'Member'}
+              {isAdmin ? 'Admin' : 'Member'}
             </span>
             <button
               className="ml-auto bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs px-3 py-1 rounded transition"

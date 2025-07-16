@@ -264,4 +264,11 @@ export const declineInvite = mutation({
     await ctx.db.patch(args.inviteId, { status: "declined" });
     return null;
   },
+});
+
+export const getGroupById = query({
+  args: { groupId: v.id("groups") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.groupId);
+  },
 }); 

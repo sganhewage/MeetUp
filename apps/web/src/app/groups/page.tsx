@@ -1,14 +1,19 @@
+"use client";
+
 import Header from "@/components/Header";
 import GroupDashboard from "@/components/dashboard/GroupDashboard";
-
-// TODO: Replace with real user ID from auth context
-const MOCK_USER_ID = "mock-user-id";
+import { useUser } from "@clerk/clerk-react";
 
 export default function GroupsPage() {
+  const { user, isLoaded } = useUser();
+
+  if (!isLoaded) return <div>Loading...</div>;
+  if (!user) return null; // Middleware will redirect
+
   return (
     <main className="bg-[#EDEDED] min-h-screen">
       <Header />
-      <GroupDashboard userId={MOCK_USER_ID} />
+      <GroupDashboard userId={user.id} />
     </main>
   );
 } 
