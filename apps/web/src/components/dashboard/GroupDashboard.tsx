@@ -11,14 +11,19 @@ import { useMemo, useState } from "react";
 const MOCK_EMAIL = "user@example.com"; // TODO: Replace with real user email from auth
 
 const GroupDashboard = ({ userId }: { userId: string }) => {
+  // Fetch the real signed-in user's email
+  const { user } = useUser();
+  const userEmail = user?.primaryEmailAddress?.emailAddress || user?.emailAddresses?.[0]?.emailAddress || "";
+
   // Fetch groups for the user
   const groups = useQuery(api.groups.listUserGroups, { userId });
   const createGroup = useMutation(api.groups.createGroup);
 
   // Invites
-  const invites = useQuery(api.groups.listUserInvites, { email: MOCK_EMAIL });
+  const invites = useQuery(api.groups.listUserInvitesWithDetails, { email: userEmail });
   const acceptInvite = useMutation(api.groups.acceptInvite);
   const declineInvite = useMutation(api.groups.declineInvite);
+  const inviteToGroup = useMutation(api.groups.inviteToGroup);
 
   // Get unique creator userIds
   const creatorUserIds = groups ? Array.from(new Set(groups.map(g => g.createdBy))) : [];
@@ -32,6 +37,11 @@ const GroupDashboard = ({ userId }: { userId: string }) => {
   const [groupDescription, setGroupDescription] = useState("");
   const [creating, setCreating] = useState(false);
   const [respondingInviteId, setRespondingInviteId] = useState<string | null>(null);
+
+  // Invite form state
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [invitingGroupId, setInvitingGroupId] = useState<string | null>(null);
+  const [inviting, setInviting] = useState(false);
 
   const handleCreateGroup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -158,6 +168,44 @@ const GroupDashboard = ({ userId }: { userId: string }) => {
                       <span className="text-xs text-gray-400">
                         Created by: {loadingEmails ? "Loading..." : (creatorEmails?.[group.createdBy] || group.createdBy)}
                       </span>
+                      {/* Invite form for admins */}
+                      {group.role === 'admin' && (
+                        <form
+                          className="flex gap-2 mt-2"
+                          onSubmit={async (e) => {
+                            e.preventDefault();
+                            setInvitingGroupId(group._id);
+                            setInviting(true);
+                            try {
+                              await inviteToGroup({ groupId: group._id, email: inviteEmail, invitedBy: userId });
+                              toast.success(`Invite sent to ${inviteEmail}`);
+                              setInviteEmail("");
+                            } catch {
+                              toast.error("Failed to send invite");
+                            } finally {
+                              setInviting(false);
+                              setInvitingGroupId(null);
+                            }
+                          }}
+                        >
+                          <input
+                            type="email"
+                            className="border rounded px-2 py-1 text-xs"
+                            placeholder="Invite by email"
+                            value={inviteEmail}
+                            onChange={e => setInviteEmail(e.target.value)}
+                            required
+                            disabled={inviting && invitingGroupId === group._id}
+                          />
+                          <button
+                            type="submit"
+                            className="bg-blue-500 hover:bg-blue-600 text-white text-xs px-3 py-1 rounded"
+                            disabled={inviting && invitingGroupId === group._id}
+                          >
+                            {inviting && invitingGroupId === group._id ? "Inviting..." : "Invite"}
+                          </button>
+                        </form>
+                      )}
                     </div>
                     <a
                       href={`/groups/${group._id}`}
@@ -179,23 +227,28 @@ const GroupDashboard = ({ userId }: { userId: string }) => {
               ) : invites.length === 0 ? (
                 <div className="text-gray-500">No pending invites.</div>
               ) : (
-                <ul className="space-y-3">
+                <ul className="space-y-4">
                   {invites.map(invite => (
-                    <li key={invite._id} className="bg-yellow-50 border border-yellow-200 rounded-lg shadow p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                    <li
+                      key={invite._id}
+                      className="bg-yellow-50 border-2 border-yellow-300 rounded-xl shadow-lg p-6 flex flex-col gap-2"
+                    >
                       <div>
-                        <span className="font-bold">Group ID:</span> {invite.groupId}
-                        <span className="ml-4 text-xs text-gray-500">Invited by: {invite.invitedBy}</span>
+                        <span className="font-bold text-lg">{invite.groupName}</span>
+                        <span className="ml-4 text-xs text-gray-500">
+                          Invited by: {invite.inviterName || invite.inviterEmail || invite.invitedBy}
+                        </span>
                       </div>
-                      <div className="flex gap-2 mt-2 sm:mt-0">
+                      <div className="flex gap-2 mt-4">
                         <button
-                          className="bg-green-500 hover:bg-green-600 text-white px-4 py-1 rounded text-xs"
+                          className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded text-sm font-semibold"
                           onClick={() => handleAcceptInvite(invite._id)}
                           disabled={respondingInviteId === invite._id}
                         >
                           {respondingInviteId === invite._id ? "Joining..." : "Accept"}
                         </button>
                         <button
-                          className="bg-red-500 hover:bg-red-600 text-white px-4 py-1 rounded text-xs"
+                          className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded text-sm font-semibold"
                           onClick={() => handleDeclineInvite(invite._id)}
                           disabled={respondingInviteId === invite._id}
                         >

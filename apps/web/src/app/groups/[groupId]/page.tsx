@@ -20,6 +20,8 @@ export default function GroupManagementPage() {
   const memberUserIds = members ? members.map(m => m.userId) : [];
   const memberInfo = useQuery(api.users.getUserEmailsByClerkIds, { clerkUserIds: memberUserIds });
   const deleteGroup = useMutation(api.groups.deleteGroup);
+  const inviteToGroup = useMutation(api.groups.inviteToGroup);
+  const [inviting, setInviting] = useState(false);
   // Placeholder for leave/invite/remove actions
   const [inviteEmail, setInviteEmail] = useState("");
   const [removingUserId, setRemovingUserId] = useState<string | null>(null);
@@ -37,11 +39,19 @@ export default function GroupManagementPage() {
     alert("Leave group functionality not implemented yet.");
   };
 
-  const handleInvite = (e: React.FormEvent) => {
+  const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement invite logic
-    alert(`Invite sent to ${inviteEmail} (not implemented)`);
-    setInviteEmail("");
+    if (!inviteEmail) return;
+    setInviting(true);
+    try {
+      await inviteToGroup({ groupId, email: inviteEmail, invitedBy: user?.id || '' });
+      alert(`Invite sent to ${inviteEmail}`);
+      setInviteEmail("");
+    } catch {
+      alert("Failed to send invite");
+    } finally {
+      setInviting(false);
+    }
   };
 
   const handleRemoveMember = (userId: string) => {
@@ -118,16 +128,18 @@ export default function GroupManagementPage() {
               <input
                 type="email"
                 className="border rounded px-3 py-1 text-sm"
-                placeholder="Invite by email (not implemented)"
+                placeholder="Invite by email"
                 value={inviteEmail}
                 onChange={e => setInviteEmail(e.target.value)}
                 required
+                disabled={inviting}
               />
               <button
                 type="submit"
                 className="bg-blue-500 hover:bg-blue-600 text-white text-xs px-3 py-1 rounded"
+                disabled={inviting}
               >
-                Invite
+                {inviting ? "Inviting..." : "Invite"}
               </button>
             </form>
           )}

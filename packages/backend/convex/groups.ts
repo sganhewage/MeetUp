@@ -221,6 +221,7 @@ export const listUserInvites = query({
     invitedBy: v.string(),
     status: v.union(v.literal("pending"), v.literal("accepted"), v.literal("declined")),
     createdAt: v.number(),
+    _creationTime: v.number(),
   })),
   handler: async (ctx, args) => {
     const invites = await ctx.db
@@ -228,6 +229,66 @@ export const listUserInvites = query({
       .withIndex("by_email", (q) => q.eq("email", args.email))
       .collect();
     return invites.filter(invite => invite.status === "pending");
+  },
+});
+
+// List all pending invites for a user by email, with group and inviter details
+export const listUserInvitesWithDetails = query({
+  args: {
+    email: v.string(),
+  },
+  returns: v.array(
+    v.object({
+      _id: v.id("group_invites"),
+      groupId: v.id("groups"),
+      groupName: v.string(),
+      email: v.string(),
+      invitedBy: v.string(),
+      inviterName: v.optional(v.string()),
+      inviterEmail: v.optional(v.string()),
+      status: v.union(v.literal("pending"), v.literal("accepted"), v.literal("declined")),
+      createdAt: v.number(),
+      _creationTime: v.number(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    // Get all pending invites for this email
+    const invites = await ctx.db
+      .query("group_invites")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .collect();
+    const pendingInvites = invites.filter((invite) => invite.status === "pending");
+    if (pendingInvites.length === 0) return [];
+
+    // Fetch all group and inviter info in parallel
+    const groupIds = [...new Set(pendingInvites.map((i) => i.groupId))];
+    const inviterIds = [...new Set(pendingInvites.map((i) => i.invitedBy))];
+
+    const groups = await Promise.all(groupIds.map((id) => ctx.db.get(id)));
+    const groupMap = Object.fromEntries(groups.filter((g): g is NonNullable<typeof g> => g !== null).map((g) => [g._id, g]));
+
+    // Fetch inviter user info from users table
+    const users = await Promise.all(inviterIds.map((id) =>
+      ctx.db.query("users").filter((q) => q.eq(q.field("clerkUserId"), id)).first()
+    ));
+    const userMap = Object.fromEntries(users.filter((u): u is NonNullable<typeof u> => u !== null).map((u) => [u.clerkUserId, u]));
+
+    return pendingInvites.map((invite) => {
+      const group = groupMap[invite.groupId];
+      const inviter = userMap[invite.invitedBy];
+      return {
+        _id: invite._id,
+        groupId: invite.groupId,
+        groupName: group ? group.name : "(Unknown Group)",
+        email: invite.email,
+        invitedBy: invite.invitedBy,
+        inviterName: inviter ? `${inviter.firstName} ${inviter.lastName}`.trim() : undefined,
+        inviterEmail: inviter ? inviter.email : undefined,
+        status: invite.status,
+        createdAt: invite.createdAt,
+        _creationTime: invite._creationTime,
+      };
+    });
   },
 });
 
