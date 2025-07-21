@@ -100,17 +100,19 @@ export default function Calendar({ events, onEventClick, onEventDelete }: Calend
   console.log('Current date:', date);
 
   const eventStyleGetter = (event: any) => {
-    const originalEvent = event.resource as Event;
-    let backgroundColor = '#3B82F6'; // Default blue
+    const originalEvent = event.resource as Event & { userColor?: string };
+    let backgroundColor = originalEvent.userColor || '#3B82F6'; // Use userColor if present
     
-    if (originalEvent.calendarAccount?.provider === 'google') {
-      backgroundColor = '#EF4444'; // Red for Google
-    } else if (originalEvent.calendarAccount?.provider === 'outlook') {
-      backgroundColor = '#3B82F6'; // Blue for Outlook
-    } else if (originalEvent.calendarAccount?.provider === 'apple') {
-      backgroundColor = '#6B7280'; // Gray for Apple
-    } else {
-      backgroundColor = '#10B981'; // Green for manual events
+    if (!originalEvent.userColor) {
+      if (originalEvent.calendarAccount?.provider === 'google') {
+        backgroundColor = '#EF4444'; // Red for Google
+      } else if (originalEvent.calendarAccount?.provider === 'outlook') {
+        backgroundColor = '#3B82F6'; // Blue for Outlook
+      } else if (originalEvent.calendarAccount?.provider === 'apple') {
+        backgroundColor = '#6B7280'; // Gray for Apple
+      } else {
+        backgroundColor = '#10B981'; // Green for manual events
+      }
     }
 
     return {

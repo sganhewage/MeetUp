@@ -345,4 +345,61 @@ export const updateEvent = mutation({
       lastModified: Date.now(),
     });
   },
+});
+
+// Get all events for a set of users (for group preview calendar)
+export const getEventsForUsers = query({
+  args: {
+    userIds: v.array(v.string()),
+    startDate: v.optional(v.string()), // ISO string
+    endDate: v.optional(v.string()), // ISO string
+  },
+  handler: async (ctx, args) => {
+    if (!args.userIds || args.userIds.length === 0) return [];
+    // Convex does not support q.in; filter in-memory for small groups
+    let events = await ctx.db
+      .query("events")
+      .filter((q) => q.eq(q.field("isDeleted"), false))
+      .collect();
+    events = events.filter(event => args.userIds.includes(event.userId));
+
+    // Filter by date range if provided
+    if (args.startDate && args.endDate) {
+      const startDate = args.startDate;
+      const endDate = args.endDate;
+      events = events.filter(event => {
+        // Event starts within range
+        const startsInRange = event.startTime >= startDate && event.startTime <= endDate;
+        // Event ends within range
+        const endsInRange = event.endTime >= startDate && event.endTime <= endDate;
+        // Event spans across range
+        const spansRange = event.startTime <= startDate && event.endTime >= endDate;
+        return startsInRange || endsInRange || spansRange;
+      });
+    }
+
+    // Get calendar account details for each event
+    const eventsWithAccounts = await Promise.all(
+      events.map(async (event) => {
+        let calendarAccount = null;
+        if (event.calendarAccountId) {
+          const account = await ctx.db.get(event.calendarAccountId as any);
+          if (account && 'provider' in account) {
+            calendarAccount = {
+              _id: account._id,
+              provider: (account as any).provider,
+              email: (account as any).email,
+              isActive: (account as any).isActive
+            };
+          }
+        }
+        return {
+          ...event,
+          calendarAccount,
+        };
+      })
+    );
+
+    return eventsWithAccounts;
+  },
 }); 
